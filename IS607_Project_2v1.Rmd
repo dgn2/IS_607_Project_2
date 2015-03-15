@@ -1,0 +1,160 @@
+---
+title: "IS 607 Project 2"
+author: "Derek G. Nokes"
+date: "Saturday, March 14, 2015"
+output: html_document
+toc: yes
+---
+
+\pagebreak
+
+```{r,warning=FALSE,error=FALSE,message=FALSE}
+# load the libraries
+library('ggplot2')
+library('ggthemes')
+library('RColorBrewer')
+library('Hmisc')
+```
+
+## Load Data
+
+We begin by loading the data.
+
+```{r}
+# load the data
+inputFile<-"C:/Users/dgn2/Documents/R/IS607/Project_2/project2_data.csv"
+# load data
+data <- read.csv(inputFile, header=TRUE)
+```
+
+The data is displayed in the following table:
+
+```{r,echo=FALSE}
+# create the indices
+indexI<-data[,1]=='I'
+indexII<-data[,1]=='II'
+indexIII<-data[,1]=='III'
+indexIV<-data[,1]=='IV'
+# create the data table
+tableData<-data.frame(data[indexI,2:3],data[indexII,2:3],
+                      data[indexIII,2:3],data[indexIV,2:3])
+# create the column labels
+dataLabels<-c('I X','I Y','II X','II Y','III X','III Y',
+              'IV X','IV Y')
+# label the data
+colnames(tableData)<-dataLabels
+# create the table
+knitr::kable(tableData, caption = 'X and Y by Quarter')
+```
+
+## Exploratory Data Analysis
+
+### Data Description
+Once the data is loaded, we take a quick look at the attributes of the data:
+
+```{r}
+str(data)
+```
+
+```{r,echo=FALSE}
+# find the shape of the data
+dimension<-dim(data)
+nRows<-dimension[1]
+nCols<-dimension[2]
+```
+
+We can see that there are `r nRows` rows and `r nCols` columns in our data 
+set (i.e., $quarter$, $x$, and $y$).
+
+```{r,echo=FALSE}
+# create the data table
+dataDescription<-data.frame(c('quarter','x','y'),
+                            c('is a factor with 4 levels (I, II, III, & IV)',
+                              'is an int','is a decimal number'))
+# label the data
+colnames(dataDescription)<-c('variable','description')
+# create the table
+knitr::kable(dataDescription, caption = 'Data Description')
+```
+
+A quick summary of the data by the $quarter$ factor does not provide much insight.
+
+```{r}
+# create the data summary
+summaries <- aggregate(data$y, by=list(data$quarter),FUN=summary)
+# relabel the data summary
+colnames(summaries)<-c('Group','')
+summaries
+```
+
+### Graphical Exploration
+
+First, we create a single scatter plot varying the color by quarter.
+
+```{r}
+# graph the data
+p <- ggplot(data, aes(x, y))+theme_economist() + 
+  scale_colour_economist() + ggtitle("Scatterplots of X vs. Y") + 
+  geom_rug()
+p + geom_point(aes(colour = quarter))
+```
+
+The patterns associated with each quarter are difficult to see 
+on a single scatter plot, so we split out the quarters into 
+separate scatter plots.
+
+```{r}
+qplot(x,y, data=data,color=quarter,facets=~quarter,
+      xlab="x", ylab="y",main="Scatterplots of X vs. Y") + 
+  geom_rug() + scale_fill_brewer() + 
+  theme_economist() + scale_colour_economist() 
+```
+
+The patterns in each data set are clearer. The I, III and IV data appear
+to have linear relationships. The II data is clearly not linear. Both III 
+and IV appear to have outliers that obscure the data. 
+
+```{r}
+p <- ggplot(data, aes(quarter,y))
+p + geom_boxplot(outlier.colour = "blue",aes(fill = quarter)) + 
+  coord_flip() + scale_fill_brewer() + ggtitle('Y Summary By Quarter')+
+  theme_economist() + scale_colour_economist()
+```
+
+We now examine the distribution of Y, first by creating a 
+histogram where color denotes the contribution by each quarter
+
+```{r}
+# create a histogram where color denotes contribution by
+# each quarter
+dplot <- ggplot(data, aes(y, fill = quarter))
+dplot + geom_bar(position = "stack",binwidth=1) + 
+  theme_economist() + scale_colour_economist() + 
+  scale_fill_brewer() + ggtitle('Y By Quarter')
+```
+
+We continue to examine the distribution of Y, focusing next 
+on kernel smoothed densities for each respective quarter.
+
+```{r}
+# plot the kernal smoothed density by quarter
+qplot(y, data=data, geom="density",position="stack", fill=quarter,
+      alpha=I(.6), main="Distribution of Y BY Quarter",
+      xlab="y", ylab="density") + scale_fill_brewer() + 
+  theme_economist() + scale_colour_economist() 
+```
+
+The shape of the distribution of Y for each quarter is more clear
+once we look at the distribution for each quarter separately.
+
+```{r}
+# plot the kernal smoothed density by quarter
+qplot(y, data=data, geom="density",position="stack", fill=quarter,
+      alpha=I(.6), main="Distribution of Y BY Quarter",
+      xlab="y", ylab="density") + scale_fill_brewer() + 
+  theme_economist() + scale_colour_economist() + 
+  facet_grid(. ~ quarter) +  coord_flip()
+```
+
+The density differs significantly by quarter. The mode of the 
+distribution shifts.
